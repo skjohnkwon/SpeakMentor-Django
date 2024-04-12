@@ -7,6 +7,7 @@ import subprocess
 from openai import OpenAI
 from typing_extensions import override
 from openai import AssistantEventHandler
+from django.views.decorators.csrf import csrf_exempt
 
 from dotenv import load_dotenv
 import requests
@@ -18,6 +19,8 @@ from rest_framework.response import Response
 from django.core.files.storage import default_storage
 from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned
+from typing_extensions import override
+from openai import AssistantEventHandler
 
 
 from .models import Word
@@ -25,6 +28,30 @@ from .serializers import WordSerializer
 from pels.env import config
 
 load_dotenv()
+
+class EventHandler(AssistantEventHandler):
+
+  @override
+  def on_text_created(self, text) -> None:
+    return text
+      
+  @override
+  def on_text_delta(self, delta, snapshot):
+    print(delta.value, end="", flush=True)
+    return delta.value
+      
+  def on_tool_call_created(self, tool_call):
+    print(f"\nassistant > {tool_call.type}\n", flush=True)
+  
+  def on_tool_call_delta(self, delta, snapshot):
+    if delta.type == 'code_interpreter':
+      if delta.code_interpreter.input:
+        print(delta.code_interpreter.input, end="", flush=True)
+      if delta.code_interpreter.outputs:
+        print(f"\n\noutput >", flush=True)
+        for output in delta.code_interpreter.outputs:
+          if output.type == "logs":
+            print(f"\n{output.logs}", flush=True)
 
 def webscrapeHowManySyllables(word) -> list[str] | None:
     
@@ -207,7 +234,7 @@ def process_audio_files(request):
 
     return path_converted_wav
 
-def create_configuration(request, path_converted_wav, process_type):
+def create_speechsdk_configuration(request, path_converted_wav, process_type):
 
     if (process_type == 'word'):
         granularity = speechsdk.PronunciationAssessmentGranularity.Phoneme
@@ -227,9 +254,11 @@ def create_configuration(request, path_converted_wav, process_type):
     # audio config
     audio_config = speechsdk.audio.AudioConfig(filename = full_path)
 
+    word = request.data.get('word', "")
+
     # Pronunciation config
     pronunciation_config = speechsdk.PronunciationAssessmentConfig( 
-        reference_text=f"{request.data.get('word')}",
+        reference_text=f"{word}",
         grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
         granularity=granularity,
         enable_miscue=False)
@@ -239,8 +268,9 @@ def create_configuration(request, path_converted_wav, process_type):
     return return_config
 
 def process_sentence(request):
+    print(request.data)
     path_converted_wav = process_audio_files(request)
-    speech_recognizer = create_configuration(request, path_converted_wav, 'sentence')
+    speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'sentence')
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
     pronunciation_assessment_result_json = speech_recognition_result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
     result_json = json.loads(pronunciation_assessment_result_json)
@@ -249,7 +279,7 @@ def process_sentence(request):
 
 def process_word(request):
     path_converted_wav = process_audio_files(request)
-    speech_recognizer = create_configuration(request, path_converted_wav, 'word')
+    speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'word')
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
     pronunciation_assessment_result_json = speech_recognition_result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
     result_json = json.loads(pronunciation_assessment_result_json)
@@ -279,23 +309,23 @@ def process_assessment(request):
     print(request.data)
     return Response(data={"message": "not implemented yet lel"}, status=status.HTTP_200_OK)
 
-def init_chatbot(client: OpenAI, session):
+def init_chatbot(client: OpenAI, request):
+
+    print("initializing chatbot")
+
     # Create a new assistant and thread as before
     chatbot = client.beta.assistants.create(
         name="pronunciation_assistant_roleplay",
-        instructions="You are a chatbot that is roleplaying as an interviewer. You are interviewing a candidate for a job. The candidate is a non-native English speaker. You are to ask the candidate questions and provide feedback on their pronunciation.",
+        instructions="You are a chatbot that can roleplay as anything the user asks. Until specified otherwise, you are an assistant specialized to help with pronunciation and fluency.",
         model="gpt-4-turbo-preview",
     )
     thread = client.beta.threads.create()
 
     thread_id = thread.id
-    chatbot_id = chatbot.id
-
-    session['thread_id'] = thread_id
-    session['chatbot_id'] = chatbot_id
+    assistant_id = chatbot.id
     
     # Automatically generate the first chatbot message
-    initial_message = "Hello! I'm your interviewer today. Let's start with a simple question: Could you tell me a little about yourself?"
+    initial_message = "Hello! How can I help you?"
     # Create the message in the thread with the specified role
     client.beta.threads.messages.create(
             thread_id=thread_id,
@@ -303,86 +333,126 @@ def init_chatbot(client: OpenAI, session):
             content=initial_message
         )
     
-    print(thread_id, chatbot_id, "initialized")
+    return thread_id, assistant_id
 
-def add_message(message_content, sender_role, client: OpenAI, session):
+def generate_chatbot_feedback(content):
 
-    thread_id = session.get('thread_id')
-    chatbot_id = session.get('chatbot_id')
-    
-    if not thread_id or not chatbot_id:
-        # Handle uninitialized chat session
-        return "Session expired or not initialized."
+    OPENAI_SECRET_KEY = os.getenv('OPENAI_SECRET_KEY')
+    OPENAI_ENDPOINT = os.getenv('OPENAI_ENDPOINT')
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_SECRET_KEY}",
+    }
+
+    prompt = f"Give a concise articulation tip on how to improve the fluency of this sentence \"{content}\". One sentence only."
+    message = [{"role": "user", "content": prompt}]
+    data = {
+        "model": 'gpt-4-0125-preview',
+        "messages": message,
+        "temperature": 1,
+    }
+    response = requests.post(OPENAI_ENDPOINT, headers=headers, data=json.dumps(data))
+    if response.status_code == 200:
+        suggestion = response.json()["choices"][0]["message"]["content"]
+        return suggestion
+    else:
+        raise Exception(f"Error {response.status_code}: {response.text}")
+
+def get_latest_message(thread_id, client: OpenAI):
+    print("fetching latest message")
+    # Fetch the latest message in the thread
+    messages = client.beta.threads.messages.list(thread_id=thread_id)
+    latest_message = messages.data[-1]
+    return latest_message.content
+
+def add_message(message_content, sender_role, client: OpenAI, thread_id, assistant_id):
+
+    print("adding message: ", message_content)
 
     try:
         # Create the message in the thread with the specified role
-        message = client.beta.threads.messages.create(
+        client.beta.threads.messages.create(
             thread_id=thread_id,
-            role=sender_role,  # This now depends on the sender_role argument
+            role=sender_role,
             content=message_content
         )
 
-        # Add chatbot message and wait for the response
         run = client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
-            assistant_id=chatbot_id,
-            instructions="You are a chatbot that is roleplaying as an interviewer. You are interviewing a candidate for a job. The candidate is a non-native English speaker. You are to ask the candidate questions and provide feedback on their pronunciation."
-        )
+            assistant_id=assistant_id,
+            instructions="Continue to help the user."
+            )
+        
+        if (run.status == "completed"):
+            print("run completed")
+            messages = client.beta.threads.messages.list(
+                thread_id=thread_id
+            )
+            return messages.data[0].content[0].text.value
 
-        #wait like 5 seconds
-        time.sleep(5)
-        
-        # Assuming we get the chatbot response immediately
-        chatbot_response = run.messages[-1]
-        print(chatbot_response)
-        return chatbot_response
-        
     except Exception as e:
         # Handle errors (e.g., API failure, network issues)
         print(f"An error occurred: {str(e)}")
         return "An error occurred while adding the message."
 
 def process_chatbot(request):
-    try:
-        session = request.session
 
-        path_converted_wav = process_audio_files(request)
-        speech_recognizer = create_configuration(request, path_converted_wav, 'chatbot')
-        speech_recognition_result = speech_recognizer.recognize_once_async().get()
-        pronunciation_assessment_result_json = speech_recognition_result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
-        result_json = json.loads(pronunciation_assessment_result_json)
+    path_converted_wav = process_audio_files(request)
+    speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'chatbot')
+    speech_recognition_result = speech_recognizer.recognize_once_async().get()
+    pronunciation_assessment_result_json = speech_recognition_result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
+    result_json = json.loads(pronunciation_assessment_result_json)
 
-        user_message = result_json.get("DisplayText")
-        fluency_score = result_json.get("NBest", [])[0].get("PronunciationAssessment", {}).get("FluencyScore")
+    user_message = result_json.get("DisplayText")
+    fluency_score = result_json.get("NBest", [])[0].get("PronunciationAssessment", {}).get("FluencyScore")
 
-        print(user_message, fluency_score)
+    fluency_feedback = None
+    if fluency_score < 99:
+        print("user fluency score is less than 90. generating feedback...")
+        fluency_feedback = generate_chatbot_feedback(user_message)
 
-        client = OpenAI()
+    client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
 
-        if not session.get('thread_id'):
-            init_chatbot(client, session)
+    if not request.session.session_key:
+        print("session key not found. creating new session...")
+        request.session['thread_id'], request.session['assistant_id'] = init_chatbot(client, request)
+        request.session.modified = True
+        request.session.save()
+        sessionid = request.session.session_key
 
-        chatbot_reponse = add_message(user_message, "user", client, session)
+    sessionid = request.session.session_key
+    threadId = request.session.get('thread_id')
+    chatbotId = request.session.get('assistant_id')
+    print("sessionid: ", sessionid)
+    print("thread_id: ", threadId)
+    print("assistant_id: ", chatbotId)
 
-        JsonResponse = {
-            "user_message": user_message,
-            "fluency_score": fluency_score,
-            "chatbot_response": chatbot_reponse
-        }
+    chatbot_response = add_message(user_message, "user", client, request.session.get('thread_id'), request.session.get('assistant_id'))
 
-        return Response(data=JsonResponse, status=status.HTTP_200_OK)
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return Response(data="An error occurred while processing chatbot", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # return Response(
+    #     data={"message": "not implemented yet lel"}, 
+    #     status=status.HTTP_200_OK, 
+    #     headers={
+    #         'Access-Control-Allow-Origin': 'http://localhost:3000',
+    #         'Access-Control-Allow-Headers': 'Content-Type',
+    #         'Access-Control-Allow-Credentials': 'true'
+    #     }
+    # )
+
+    print("user message: ", user_message)
+    print("fluency score: ", fluency_score)
+    return Response(data={
+        "user_message": user_message,
+        "chatbot_response": chatbot_response,
+        "feedback": fluency_feedback}, status=status.HTTP_200_OK)
+
+
 
 @api_view(['POST'])
 def process(request):
     
-    print(request.POST)
+    process_type = request.GET.get('type')
 
-    process_type = "chatbot"
-
-    print(process_type)
     if (process_type == 'word'):
         print("processing word")
         return process_word(request)
