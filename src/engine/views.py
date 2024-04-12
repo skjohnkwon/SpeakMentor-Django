@@ -29,30 +29,6 @@ from pels.env import config
 
 load_dotenv()
 
-class EventHandler(AssistantEventHandler):
-
-  @override
-  def on_text_created(self, text) -> None:
-    return text
-      
-  @override
-  def on_text_delta(self, delta, snapshot):
-    print(delta.value, end="", flush=True)
-    return delta.value
-      
-  def on_tool_call_created(self, tool_call):
-    print(f"\nassistant > {tool_call.type}\n", flush=True)
-  
-  def on_tool_call_delta(self, delta, snapshot):
-    if delta.type == 'code_interpreter':
-      if delta.code_interpreter.input:
-        print(delta.code_interpreter.input, end="", flush=True)
-      if delta.code_interpreter.outputs:
-        print(f"\n\noutput >", flush=True)
-        for output in delta.code_interpreter.outputs:
-          if output.type == "logs":
-            print(f"\n{output.logs}", flush=True)
-
 def webscrapeHowManySyllables(word) -> list[str] | None:
     
     response = requests.get(f'https://www.howmanysyllables.com/syllables/{word}')
@@ -107,47 +83,6 @@ def openai_laymans(word) -> list[str] | None:
         return response.json()["choices"][0]["message"]["content"]
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
-
-@api_view(['POST'])
-def search(request):
-
-    # check if word is already in db
-    existing = Word.objects.filter(word=request.data.get('search'))
-    if existing:
-        print("existing word found in db. returning...")
-        serializer = WordSerializer(existing, many=True)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-    
-    print("word not found in db. scraping...")
-
-    word = request.data.get('search')
-    word = word.lower()
-
-    print("web scraping howmanysyllables...")
-
-    scrapedHowManySyllables = webscrapeHowManySyllables(word)
-    
-    if scrapedHowManySyllables:
-        print("web scraped from howmanysyllables")
-        new_word = Word(word=word, laymans=scrapedHowManySyllables)
-        
-    else:
-        print("web scraping youglish...")
-        scrapedYouGlish = webscrapeYouGlish(word)
-
-        if scrapedYouGlish:
-            print("web scraped from youglish")
-            new_word = Word(word=word, laymans=scrapedYouGlish)
-
-        else:
-            print("openai_laymans")
-            generated = openai_laymans(word)
-            new_word = Word(word=word, laymans=generated)
-
-    new_word.save()
-    serializer = WordSerializer(new_word)
-
-    return Response(data=[serializer.data], status=status.HTTP_200_OK)
 
 def generate_feedback(request):
 
@@ -358,13 +293,6 @@ def generate_chatbot_feedback(content):
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
-def get_latest_message(thread_id, client: OpenAI):
-    print("fetching latest message")
-    # Fetch the latest message in the thread
-    messages = client.beta.threads.messages.list(thread_id=thread_id)
-    latest_message = messages.data[-1]
-    return latest_message.content
-
 def add_message(message_content, sender_role, client: OpenAI, thread_id, assistant_id):
 
     print("adding message: ", message_content)
@@ -446,13 +374,9 @@ def process_chatbot(request):
         "chatbot_response": chatbot_response,
         "feedback": fluency_feedback}, status=status.HTTP_200_OK)
 
-
-
 @api_view(['POST'])
 def process(request):
-    
     process_type = request.GET.get('type')
-
     if (process_type == 'word'):
         print("processing word")
         return process_word(request)
@@ -467,3 +391,42 @@ def process(request):
         return process_chatbot(request)
     else:
         return Response(data="Invalid process type", status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['POST'])
+def search(request):
+    existing = Word.objects.filter(word=request.data.get('search'))
+    if existing:
+        print("existing word found in db. returning...")
+        serializer = WordSerializer(existing, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    
+    print("word not found in db. scraping...")
+
+    word = request.data.get('search')
+    word = word.lower()
+
+    print("web scraping howmanysyllables...")
+
+    scrapedHowManySyllables = webscrapeHowManySyllables(word)
+    
+    if scrapedHowManySyllables:
+        print("web scraped from howmanysyllables")
+        new_word = Word(word=word, laymans=scrapedHowManySyllables)
+        
+    else:
+        print("web scraping youglish...")
+        scrapedYouGlish = webscrapeYouGlish(word)
+
+        if scrapedYouGlish:
+            print("web scraped from youglish")
+            new_word = Word(word=word, laymans=scrapedYouGlish)
+
+        else:
+            print("openai_laymans")
+            generated = openai_laymans(word)
+            new_word = Word(word=word, laymans=generated)
+
+    new_word.save()
+    serializer = WordSerializer(new_word)
+
+    return Response(data=[serializer.data], status=status.HTTP_200_OK)
