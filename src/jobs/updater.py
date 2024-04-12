@@ -4,6 +4,6 @@ from .jobs import schedule_clean
 
 def start():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(schedule_clean, 'interval', hours=6)
+    scheduler.add_job(schedule_clean, 'interval', hours=24)
     scheduler.start()
     print("[APSCHEDULER] BCS Started")
