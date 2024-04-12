@@ -1,5 +1,5 @@
 import requests
-endpoint = "http://localhost:8000/"
+endpoint = "https://speakmentor-django.onrender.com"
 
 get_response = requests.get(endpoint)
 
