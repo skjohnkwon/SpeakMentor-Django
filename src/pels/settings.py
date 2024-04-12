@@ -26,7 +26,7 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default=None)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['speakmentor-django.onrender.com']
+ALLOWED_HOSTS = ['speakmentor-django.onrender.com', 'localhost']
 
 
 # Application definition
