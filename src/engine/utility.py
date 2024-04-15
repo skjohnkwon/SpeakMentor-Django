@@ -279,7 +279,7 @@ def init_chatbot(client: OpenAI, request):
     chatbot = client.beta.assistants.create(
         name="pronunciation_assistant_roleplay",
         instructions=
-            "All responses should be no more than 50 words. You are a roleplay chatbot that helps users improve their pronunciation. Only give one response at a time.",
+            "All responses should be no more than 50 words. You are a roleplay chatbot that helps users improve their pronunciation and fluency. Only give one response at a time.",
         model="gpt-4-turbo-preview",
     )
     thread = client.beta.threads.create()
@@ -307,7 +307,7 @@ def generate_chatbot_feedback(content):
         "Authorization": f"Bearer {OPENAI_SECRET_KEY}",
     }
 
-    prompt = f"Give a concise articulation tip on how to improve the fluency of this sentence \"{content}\". One sentence only."
+    prompt = f"Give a concise articulation tip on how to improve the fluency of this sentence \"{content}\". Make it optimized for speaking not writing. One sentence only."
     message = [{"role": "user", "content": prompt}]
     data = {
         "model": 'gpt-4-0125-preview',
