@@ -2,12 +2,8 @@ import json
 import os
 import re
 import secrets
-import time
 import subprocess
 from openai import OpenAI
-from typing_extensions import override
-from openai import AssistantEventHandler
-from django.views.decorators.csrf import csrf_exempt
 
 from dotenv import load_dotenv
 import requests
@@ -17,15 +13,14 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.core.files.storage import default_storage
-from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned
-from typing_extensions import override
-from openai import AssistantEventHandler
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
 
 from .models import Word
+from api.models import PracticeList
 from .serializers import WordSerializer
-from pels.env import config
 
 load_dotenv()
 
@@ -238,6 +233,7 @@ def process_word(request):
         "word": word
     }
     feedback = generate_feedback(request)
+
     return Response(data=feedback, status=status.HTTP_200_OK)
 
 def process_assessment(request):

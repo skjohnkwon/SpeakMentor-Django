@@ -23,9 +23,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config("DJANGO_SECRET_KEY", default=None)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['speakmentor-django.onrender.com', 'localhost']
+ALLOWED_HOSTS = [
+    'speakmentor-django.onrender.com',
+    'localhost',
+    '127.0.0.1'
+]
 
 
 # Application definition
@@ -41,7 +45,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'engine',
     'corsheaders',
-    "django_apscheduler"
+    "django_apscheduler",
+    "api"
 ]
 
 MIDDLEWARE = [
