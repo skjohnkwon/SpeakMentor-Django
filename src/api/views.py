@@ -108,13 +108,3 @@ def create_payment_intent(request):
     except stripe.error.StripeError as e:
         return Response(data={'error': {'message': str(e)}}, status=status.HTTP_400_BAD_REQUEST)
     
-@permission_classes([IsAuthenticated])
-@api_view(['GET'])
-def get_data(request):
-    try:
-        user = request.user
-        user_data = UserData.objects.get(user=user)
-        user_data_seralizer = UserDataSeralizer(user_data)
-        return Response(user_data_seralizer.data, status=status.HTTP_200_OK)
-    except UserData.DoesNotExist:
-        return Response("User data not found", status=status.HTTP_404_NOT_FOUND)
