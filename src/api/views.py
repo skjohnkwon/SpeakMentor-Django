@@ -5,20 +5,19 @@ from django.shortcuts import render
 from rest_framework import status
 from django.contrib.auth import logout as auth_logout
 
-
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 import stripe
 import os
-import pels.env as config
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from .serializers import PracticeListSerializer
 from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
+from .models import PracticeList
+from .utility import generate_list
 
 import requests
 import json
@@ -74,11 +73,13 @@ def logout(request):
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def get_practice_list(request):
     try:
-        user = request.user
-        user_data = UserData.objects.get(user=user)
-        practice_list = user_data.practice_list
-        practice_list_serializer = PracticeListSerializer(practice_list)
-        return Response(practice_list_serializer.data, status=status.HTTP_200_OK)
+        if request.user.is_authenticated:
+            practice_list, created = PracticeList.objects.get_or_create(user=request.user)
+
+            suggested_list = generate_list(practice_list.words)
+
+            practice_list.save()
+            print(practice_list.words)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
@@ -96,13 +97,11 @@ def get_chat_history(request):
 
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
-@permission_classes([IsAuthenticated])
 def test_token(request):
     return Response("passed!")
 
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
-@permission_classes([IsAuthenticated])
 def subscriptionStatus(request):
     #Do logic here for accoutn subscription using the stripe account
     return Response("no SubscriptinStatus yet")

@@ -247,7 +247,6 @@ def process_word(request):
         syllable = x.get("Syllable")
         score = x.get("PronunciationAssessment", {}).get("AccuracyScore")
         syllable = syllable.replace("x", "")
-        #return_json[syllable] = score
         scores.append({"phrase": syllable, "score": score})
     try:
         word = Word.objects.get(word=request.data.get('word'))
