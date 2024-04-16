@@ -3,19 +3,27 @@ from django.contrib.postgres.fields import ArrayField
 
 # Create your models here.
 
-class UserData(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    sub_plan = models.CharField(max_length=100, default='free')
-    practice_list = models.ForeignKey('api.practicelist', on_delete=models.CASCADE, blank=True, null=True)
-    chat_history = models.ForeignKey('api.chathistory', on_delete=models.CASCADE, blank=True, null=True)
-
 class PracticeHistory(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
     words = ArrayField(models.CharField(max_length=100, blank=True), default=list, blank=True)
+    max_words = 10  # Define the maximum number of words allowed
+
+    def save(self, *args, **kwargs):
+        if len(self.words) > self.max_words:
+            # This keeps the newest `self.max_words` entries and drops the older ones
+            self.words = self.words[-self.max_words:]
+        super().save(*args, **kwargs)
 
 class PracticeList(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
     words = ArrayField(models.CharField(max_length=100, blank=True), default=list, blank=True)
+    max_words = 10  # Define the maximum number of words allowed
+
+    def save(self, *args, **kwargs):
+        if len(self.words) > self.max_words:
+            # This keeps the newest `self.max_words` entries and drops the older ones
+            self.words = self.words[-self.max_words:]
+        super().save(*args, **kwargs)
 
 class ChatHistory(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)

@@ -8,14 +8,20 @@
 
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserData
+from .models import PracticeList
+from .models import ChatHistory
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta(object):
         model = User 
         fields = ['id', 'username', 'password', 'email']
 
-class UserDataSerializer(serializers.ModelSerializer):
+class PracticeListSerializer(serializers.ModelSerializer):
     class Meta:
-        model = UserData
+        model = PracticeList
+        fields = '__all__'
+
+class ChatHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatHistory
         fields = '__all__'

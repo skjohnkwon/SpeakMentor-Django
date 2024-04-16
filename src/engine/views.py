@@ -3,6 +3,9 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
 from .models import Word
 from .serializers import WordSerializer
 from .utility import process_word, process_sentence, process_assessment, process_chatbot, webscrapeHowManySyllables, webscrapeYouGlish, openai_laymans
@@ -10,7 +13,9 @@ from .utility import process_word, process_sentence, process_assessment, process
 load_dotenv()
 
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
 def process(request):
+    
     process_type = request.GET.get('type')
     if (process_type == 'word'):
         print("processing word")

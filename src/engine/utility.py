@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import requests
 from bs4 import BeautifulSoup as bs
 import azure.cognitiveservices.speech as speechsdk
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ from django.core.files.storage import default_storage
 from django.core.exceptions import MultipleObjectsReturned
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from .models import Word
+from api.models import PracticeHistory
 
 ############################################[MISC FUNCTIONS]
 
@@ -254,12 +256,18 @@ def process_word(request):
         word = words.first()
         words.exclude(pk=word.pk).delete()
     laymans = word.laymans
-    request = {
+    feedback_request = {
         "scores": scores,
         "laymans": laymans,
         "word": word
     }
-    feedback = generate_feedback(request)
+    feedback = generate_feedback(feedback_request)
+
+    if request.user.is_authenticated:
+        practice_history, created = PracticeHistory.objects.get_or_create(user=request.user)
+        practice_history.words.append(word.word)
+        practice_history.save()
+        print(practice_history.words)
 
     return Response(data=feedback, status=status.HTTP_200_OK)
 

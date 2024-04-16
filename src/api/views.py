@@ -16,8 +16,8 @@ import pels.env as config
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from .models import UserData
-from .serializers import UserDataSerializer
+from .serializers import PracticeListSerializer
+from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
 
 import requests
@@ -53,16 +53,9 @@ def login(request):
         token, created = Token.objects.get_or_create(user=user)
         user_serializer = UserSerializer(user)
 
-        # Handle UserData: retrieve if exists, or create new one
-        user_data, created = UserData.objects.get_or_create(user=user)
-        user_data_serializer = UserDataSerializer(user_data)
-
-        print(token.key, user_serializer.data, user_data_serializer.data)
-
         return Response({
             'token': token.key, 
-            'user': user_serializer.data, 
-            'user_data': user_data_serializer.data
+            'user': user_serializer.data
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
@@ -75,6 +68,30 @@ def logout(request):
         return Response("Logged out successfully", status=status.HTTP_200_OK)
     except Exception as e:
         # Return the error message and a 400 status code
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def get_practice_list(request):
+    try:
+        user = request.user
+        user_data = UserData.objects.get(user=user)
+        practice_list = user_data.practice_list
+        practice_list_serializer = PracticeListSerializer(practice_list)
+        return Response(practice_list_serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def get_chat_history(request):
+    try:
+        user = request.user
+        user_data = UserData.objects.get(user=user)
+        chat_history = user_data.chat_history
+        chat_history_serializer = ChatHistorySerializer(chat_history)
+        return Response(chat_history_serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
