@@ -102,7 +102,7 @@ def openai_laymans(word) -> list[str] | None:
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
-def generate_feedback(request):
+def generate_word_feedback(request):
 
     scores = request.get('scores')
     laymans = request.get('laymans')
@@ -117,7 +117,7 @@ def generate_feedback(request):
         "Authorization": f"Bearer {OPENAI_SECRET_KEY}",
     }
 
-    print('generate_feedback')
+    print('generate_word_feedback')
     score_and_laymans_joined = []
     feedbacks = []
     #print(scores, laymans, word)
@@ -146,6 +146,33 @@ def generate_feedback(request):
     }
     
     return return_data
+
+def generate_sentence_feedback(sentence):
+    
+    OPENAI_SECRET_KEY = os.getenv('OPENAI_SECRET_KEY')
+    OPENAI_ENDPOINT = os.getenv('OPENAI_ENDPOINT')
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {OPENAI_SECRET_KEY}",
+    }
+
+    print('generate_word_feedback')
+    prompt = f"Give a tip to improve fluency for this sentence: \"{sentence}\" One sentence only."
+    message = [{"role": "user", "content": prompt}]
+    data = {
+        "model": 'gpt-4-0125-preview',
+        "messages": message,
+        "temperature": 1,
+    }
+    response = requests.post(OPENAI_ENDPOINT, headers=headers, data=json.dumps(data))
+    if response.status_code == 200:
+        suggestion = response.json()["choices"][0]["message"]["content"]
+    else:
+        raise Exception(f"Error {response.status_code}: {response.text}")
+            
+    print(suggestion)
+    
+    return suggestion
 
 ############################################[AUDIO PROCESSING FUNCTIONS]
 
@@ -231,8 +258,28 @@ def process_sentence(request):
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
     pronunciation_assessment_result_json = speech_recognition_result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
     result_json = json.loads(pronunciation_assessment_result_json)
-    print(result_json)
-    return Response(data=result_json, status=status.HTTP_200_OK)
+
+    user_message = result_json.get("DisplayText")
+    fluency_score = result_json.get("NBest", [])[0].get("PronunciationAssessment", {}).get("FluencyScore")
+
+    if fluency_score < 95:
+        fluency_feedback = generate_sentence_feedback(user_message)
+        return Response(data={"result_json": result_json, "feedback": fluency_feedback}, status=status.HTTP_200_OK)
+    else:
+        funny_comments = [
+            "You're basically a rockstar without the guitar!",
+            "You nailed it better than a carpenter!",
+            "Is there an app to download your skills? You did GREAT!",
+            "You must have been a Boy Scout because you’ve earned your merit badge with this one!",
+            "Wow, you’re on fire! Should I call the fire department?",
+            "You’ve hit the bullseye better than Robin Hood!",
+            "Are you a wizard? Because that was magical!",
+            "If there was a 'Making it Look Easy' award, you’d win hands down!",
+            "Did you eat extra smarties today? Because that was brilliant!"
+        ]
+        # pick random funny comment
+        fluency_feedback = secrets.choice(funny_comments)
+        return Response(data={"result_json": result_json, "feedback": fluency_feedback}, status=status.HTTP_200_OK)
 
 ############################################[WORD PROCESSING FUNCTIONS]
 
@@ -260,7 +307,7 @@ def process_word(request):
         "laymans": laymans,
         "word": word
     }
-    feedback = generate_feedback(feedback_request)
+    feedback = generate_word_feedback(feedback_request)
 
     if request.user.is_authenticated:
         practice_history, created = PracticeHistory.objects.get_or_create(user=request.user)
@@ -305,7 +352,7 @@ def init_chatbot(client: OpenAI, request):
     
     return thread_id, assistant_id
 
-def generate_chatbot_feedback(content):
+def generate_message_feedback(content):
 
     OPENAI_SECRET_KEY = os.getenv('OPENAI_SECRET_KEY')
     OPENAI_ENDPOINT = os.getenv('OPENAI_ENDPOINT')
@@ -370,9 +417,9 @@ def process_chatbot(request):
     fluency_score = result_json.get("NBest", [])[0].get("PronunciationAssessment", {}).get("FluencyScore")
 
     fluency_feedback = None
-    if fluency_score < 99:
-        print("user fluency score is less than 90. generating feedback...")
-        fluency_feedback = generate_chatbot_feedback(user_message)
+    if fluency_score < 95:
+        print("generating feedback...")
+        fluency_feedback = generate_message_feedback(user_message)
 
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
 
@@ -397,4 +444,6 @@ def process_chatbot(request):
     return Response(data={
         "user_message": user_message,
         "chatbot_response": chatbot_response,
-        "feedback": fluency_feedback}, status=status.HTTP_200_OK)
+        "feedback": fluency_feedback,
+        "result_json": result_json
+        }, status=status.HTTP_200_OK)

@@ -15,7 +15,6 @@ load_dotenv()
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def process(request):
-    
     process_type = request.GET.get('type')
     if (process_type == 'word'):
         print("processing word")
