@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
-
-# Create your models here.
+from collections import OrderedDict
 
 class PracticeHistory(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
@@ -9,8 +8,10 @@ class PracticeHistory(models.Model):
     max_words = 10  
 
     def save(self, *args, **kwargs):
-        if len(self.words) > self.max_words:
-            self.words = self.words[-self.max_words:]
+        unique_words = list(OrderedDict.fromkeys(self.words))
+        if len(unique_words) > self.max_words:
+            unique_words = unique_words[-self.max_words:]
+        self.words = unique_words
         super().save(*args, **kwargs)
 
 class PracticeList(models.Model):
