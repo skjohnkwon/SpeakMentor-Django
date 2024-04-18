@@ -16,7 +16,7 @@ class PracticeHistoryAdmin(admin.ModelAdmin):
 admin.site.register(PracticeHistory, PracticeHistoryAdmin)
 
 class ChatHistoryAdmin(admin.ModelAdmin):
-    list_display = ('user', 'chat', 'date')  # Fields to display in list view
+    list_display = ('user', 'title', 'chat', 'date')  # Fields to display in list view
     search_fields = ['user']  # Fields that can be searched
 
 admin.site.register(ChatHistory, ChatHistoryAdmin)

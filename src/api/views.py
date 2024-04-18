@@ -10,6 +10,7 @@ from rest_framework.authentication import SessionAuthentication, TokenAuthentica
 from rest_framework import status
 import stripe
 import os
+from .models import ChatHistory
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
@@ -83,15 +84,35 @@ def get_practice_list(request):
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def save_chatbot_conversations(request):
+    print(request.user)
+    if not request.user.is_authenticated:
+        print("User not authenticated")
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        title = request.data.get('title')
+        conversation = request.data.get('messages')
+        ChatHistory.objects.create(user=request.user, title=title, chat=conversation)
+        return Response("Chatbot conversation saved", status=status.HTTP_200_OK)
+    except Exception as e:
+        print(e)
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
-def get_chat_history(request):
+def get_chatbot_conversations(request):
+    print(request.user)
+    if not request.user.is_authenticated:
+        print("User not authenticated")
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
     try:
         user = request.user
-        user_data = UserData.objects.get(user=user)
-        chat_history = user_data.chat_history
-        chat_history_serializer = ChatHistorySerializer(chat_history)
-        return Response(chat_history_serializer.data, status=status.HTTP_200_OK)
+        chat_history = ChatHistory.objects.filter(user=user)
+        print(chat_history)
+        serializer = ChatHistorySerializer(chat_history, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 

@@ -284,6 +284,7 @@ def process_sentence(request):
 ############################################[WORD PROCESSING FUNCTIONS]
 
 def process_word(request):
+    print(request.user)
     path_converted_wav = process_audio_files(request)
     speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'word')
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
@@ -310,6 +311,7 @@ def process_word(request):
     feedback = generate_word_feedback(feedback_request)
 
     if request.user.is_authenticated:
+        print("User authenticated. Saving practice history...")
         practice_history, created = PracticeHistory.objects.get_or_create(user=request.user)
         practice_history.words.append(word.word)
         practice_history.save()
