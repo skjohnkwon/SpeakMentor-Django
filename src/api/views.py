@@ -73,14 +73,15 @@ def logout(request):
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def get_practice_list(request):
+    if not request.user.is_authenticated:
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
     try:
-        if request.user.is_authenticated:
-            practice_list, created = PracticeList.objects.get_or_create(user=request.user)
-
-            suggested_list = generate_list(practice_list.words)
-
-            practice_list.save()
-            print(practice_list.words)
+        practice_list, created = PracticeList.objects.get_or_create(user=request.user)
+        suggested_list = generate_list(practice_list.words)
+        practice_list.words = suggested_list
+        practice_list.save()
+        serializer = PracticeListSerializer(practice_list)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 

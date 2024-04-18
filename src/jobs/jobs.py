@@ -21,7 +21,7 @@ def schedule_clean_audio_files():
 def schedule_clean_assistants():
     print("[APSCHEDULER] CLEANING ASSISTANTS")
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
-    assistants = client.best.assistants.list()
+    assistants = client.beta.assistants.list()
     for assistant in assistants:
         print(f"[APSCHEDULER] Deleting assistant {assistant['id']}")
         response = client.beta.assistants.delete(assistant['id'])
