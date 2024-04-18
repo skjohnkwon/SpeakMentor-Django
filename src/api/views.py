@@ -19,6 +19,7 @@ from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
 from .models import PracticeList
 from .utility import generate_list
+from .serializers import QuestionnaireSerializer
 
 import requests
 import json
@@ -146,3 +147,11 @@ def create_payment_intent(request):
     except stripe.error.StripeError as e:
         return Response(data={'error': {'message': str(e)}}, status=status.HTTP_400_BAD_REQUEST)
     
+@api_view(['POST'])
+def Questionnaire(request):
+    print(request.data)
+    serializer = QuestionnaireSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
