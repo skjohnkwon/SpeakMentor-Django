@@ -327,7 +327,7 @@ def process_assessment(request):
 
 ############################################[CHATBOT PROCESSING FUNCTIONS]
 
-def init_chatbot(client: OpenAI, request):
+def init_chatbot(client: OpenAI):
 
     print("initializing chatbot")
 
