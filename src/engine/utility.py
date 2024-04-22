@@ -427,7 +427,7 @@ def process_chatbot(request):
 
     if not request.session.session_key:
         print("session key not found. creating new session...")
-        request.session['thread_id'], request.session['assistant_id'] = init_chatbot(client, request)
+        request.session['thread_id'], request.session['assistant_id'] = init_chatbot(client)
         request.session.modified = True
         request.session.save()
         sessionid = request.session.session_key
