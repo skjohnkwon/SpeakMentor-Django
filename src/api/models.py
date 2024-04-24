@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from collections import OrderedDict
+from django.utils import timezone
 
 class PracticeHistory(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
@@ -17,12 +18,8 @@ class PracticeHistory(models.Model):
 class PracticeList(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
     words = ArrayField(models.CharField(max_length=100, blank=True), default=list, blank=True)
-    max_words = 10
-
-    def save(self, *args, **kwargs):
-        if len(self.words) > self.max_words:
-            self.words = self.words[-self.max_words:]
-        super().save(*args, **kwargs)
+    created_at = models.DateTimeField(auto_now_add=True)
+    modified_at = models.DateTimeField(auto_now=True)
 
 class ChatHistory(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)

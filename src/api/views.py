@@ -1,7 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.shortcuts import render
-#from .serializers import ProductSerializer
 from rest_framework import status
 from django.contrib.auth import logout as auth_logout
 
@@ -18,8 +17,11 @@ from .serializers import PracticeListSerializer
 from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
 from .models import PracticeList
+from .models import PracticeHistory
 from .utility import generate_list
 from .serializers import QuestionnaireSerializer
+from django.utils import timezone
+from datetime import timedelta
 
 import requests
 import json
@@ -76,13 +78,45 @@ def logout(request):
 def get_practice_list(request):
     if not request.user.is_authenticated:
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+
     try:
-        practice_list, created = PracticeList.objects.get_or_create(user=request.user)
-        suggested_list = generate_list(practice_list.words)
-        practice_list.words = suggested_list
+        practice_list, practice_list_created = PracticeList.objects.get_or_create(user=request.user)
+        practice_history, practice_history_created = PracticeHistory.objects.get_or_create(user=request.user)
+
+        if practice_history_created:
+            practice_history.words = []
+            practice_history.save()
+        
+        if practice_list_created:
+            generated_list = generate_list(practice_history.words)
+            practice_list.words = generated_list
+            practice_list.save()
+            return Response(generated_list, status=status.HTTP_200_OK)
+
+        elif timezone.now() - practice_list.modified_at > timedelta(days=1):
+            print("OLD. Generating new list")
+            generated_list = generate_list(practice_history.words)
+            practice_list.words = generated_list
+            practice_list.save()
+            print(generated_list)
+        
+        return Response(practice_list.words, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def gen_new_practice_list(request):
+    if not request.user.is_authenticated:
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        practice_history = PracticeHistory.objects.get(user=request.user)
+        generated_list = generate_list(practice_history.words)
+        practice_list = PracticeList.objects.get(user=request.user)
+        practice_list.words = generated_list
         practice_list.save()
-        serializer = PracticeListSerializer(practice_list)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(practice_list.words, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 

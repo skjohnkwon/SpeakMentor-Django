@@ -336,7 +336,7 @@ def init_chatbot(client: OpenAI):
         name="pronunciation_assistant_roleplay",
         instructions=
             "All responses should be no more than 50 words. You are a roleplay chatbot that helps users improve their pronunciation and fluency. Only give one response at a time.",
-        model="gpt-4-turbo-preview",
+        model="gpt-3.5-turbo-16k-0613",
     )
     thread = client.beta.threads.create()
 
