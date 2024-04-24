@@ -13,18 +13,15 @@ from .models import ChatHistory
 
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
-from .serializers import PracticeListSerializer
 from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
 from .models import PracticeList
 from .models import PracticeHistory
+from .models import Questionnaire
 from .utility import generate_list
 from .serializers import QuestionnaireSerializer
 from django.utils import timezone
 from datetime import timedelta
-
-import requests
-import json
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -182,10 +179,17 @@ def create_payment_intent(request):
         return Response(data={'error': {'message': str(e)}}, status=status.HTTP_400_BAD_REQUEST)
     
 @api_view(['POST'])
-def Questionnaire(request):
-    print(request.data)
-    serializer = QuestionnaireSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def questionnaire(request):
+    print(request.user, request.data)
+    data = request.data.get('answers')
+    user = request.user
+    native_language = data.get('native_language')
+    birth_year = data.get('birth_year')
+    years_speaking_english = data.get('years_speaking_english')
+    print(native_language, birth_year, years_speaking_english)
+    try:
+        Questionnaire.objects.create(user=user, native_language=native_language, birth_year=birth_year, years_speaking_english=years_speaking_english)
+        return Response("Questionnaire saved", status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)

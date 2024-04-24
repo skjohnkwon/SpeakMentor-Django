@@ -11,5 +11,5 @@ urlpatterns = [
     path('save-chatbot-conversations', views.save_chatbot_conversations),
     path('test-token', views.test_token),
     path('create-payment-intent', views.create_payment_intent, name='create_payment_intent'),
-    path('questionnaire', views.Questionnaire, name='questionnaire')
+    path('questionnaire', views.questionnaire, name='questionnaire')
 ]

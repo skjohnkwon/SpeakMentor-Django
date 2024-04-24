@@ -29,6 +29,6 @@ class ChatHistory(models.Model):
 
 class Questionnaire(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
-    age = models.PositiveIntegerField()
+    birth_year = models.PositiveIntegerField()
     native_language = models.CharField(max_length=100)
     years_speaking_english = models.PositiveIntegerField()
