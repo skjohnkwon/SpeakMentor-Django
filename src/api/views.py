@@ -68,7 +68,6 @@ def logout(request):
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def get_practice_list(request):
-    print(request.user)
     if not request.user.is_authenticated:
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
     try:
@@ -112,7 +111,6 @@ def get_chatbot_conversations(request):
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def update_chatbot_conversations(request):
-    #print(request.data)
     if not request.user.is_authenticated:
         print("User not authenticated")
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
@@ -123,6 +121,23 @@ def update_chatbot_conversations(request):
         chat_history.chat = messages.get('chat')
         chat_history.save()
         return Response("Chatbot conversation updated", status=status.HTTP_200_OK)
+    except Exception as e:
+        print(e)
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def delete_chatbot_conversations(request):
+    if not request.user.is_authenticated:
+        print("User not authenticated")
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        
+        messages = request.data.get('messages')
+        print(messages.get('id'))
+        chat_history = ChatHistory.objects.get(id=messages.get('id'))
+        chat_history.delete()
+        return Response("Chatbot conversation deleted", status=status.HTTP_200_OK)
     except Exception as e:
         print(e)
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)

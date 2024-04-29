@@ -95,7 +95,7 @@ def convert_to_laymans_openai(syllables, word):
         messages=[
             {
                 "role": "system", 
-                "content": f"Convert the syllables {list_syllables} to simplified layman's pronunciation for the inflected form or morphological variant of the word {word}. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments. Maintain syllable count if possible."},
+                "content": f"Convert the syllables {list_syllables} to simplified layman's pronunciation for the inflected form or morphological variant of the word {word}. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments. Make sure to generate syllables for the inflected word, not the orginal."},
         ]
     )
     # Extract the text from the completion object
@@ -275,7 +275,7 @@ def process_sentence(request):
             "You nailed it better than a carpenter!",
             "Is there an app to download your skills? You did GREAT!",
             "You must have been a Boy Scout because you’ve earned your merit badge with this one!",
-            "Wow, you’re on fire! Should I call the fire department?",
+            "Wow, you’re on fire &#128293;! Should I call the fire department?",
             "You’ve hit the bullseye better than Robin Hood!",
             "Are you a wizard? Because that was magical!",
             "If there was a 'Making it Look Easy' award, you’d win hands down!",
@@ -419,15 +419,12 @@ def process_chatbot(request):
     if thread_id == 'undefined' or thread_id == '' or thread_id == 'null':
         print("thread_id not found. creating new thread...")
         thread_id = init_chatbot(client)
-        # request.session['thread_id'] = thread_id
-        # request.session.modified = True
-        # request.session.save()
 
-    #print("sessionid: ", request.session.session_key)
     print("thread_id: ", thread_id)
 
     chatbot_response = add_message(user_message, "user", client, thread_id)
 
+    print("chatbot response: ", chatbot_response)
     print("user message: ", user_message)
     print("fluency score: ", fluency_score)
 

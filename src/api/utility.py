@@ -14,6 +14,8 @@ def generate_list():
         ]
     )
 
+    print(response)
+
     # Extract the text from the completion object
     words = response.choices[0].message.content
 
