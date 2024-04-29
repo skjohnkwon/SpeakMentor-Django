@@ -73,6 +73,7 @@ def logout(request):
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def get_practice_list(request):
+    print(request.user)
     if not request.user.is_authenticated:
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
 
@@ -152,7 +153,9 @@ def get_chatbot_conversations(request):
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def test_token(request):
-    return Response("passed!")
+    if not request.user.is_authenticated:
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+    return Response("User authenticated", status=status.HTTP_200_OK)
 
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
