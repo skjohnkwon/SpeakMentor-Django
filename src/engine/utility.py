@@ -20,7 +20,6 @@ from django.core.files.storage import default_storage
 from django.core.exceptions import MultipleObjectsReturned
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from .models import Word
-from api.models import PracticeHistory
 
 ############################################[MISC FUNCTIONS]
 
@@ -309,13 +308,6 @@ def process_word(request):
         "word": word
     }
     feedback = generate_word_feedback(feedback_request)
-
-    if request.user.is_authenticated:
-        print("User authenticated. Saving practice history...")
-        practice_history, created = PracticeHistory.objects.get_or_create(user=request.user)
-        practice_history.words.append(word.word)
-        practice_history.save()
-        print(practice_history.words)
 
     return Response(data=feedback, status=status.HTTP_200_OK)
 

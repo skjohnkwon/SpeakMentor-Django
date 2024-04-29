@@ -6,7 +6,6 @@ urlpatterns = [
     path('login', views.login),
     path('logout', views.logout),
     path('get-practice-list', views.get_practice_list),
-    path('gen-practice-list', views.gen_new_practice_list),
     path('get-chatbot-conversations', views.get_chatbot_conversations),
     path('save-chatbot-conversations', views.save_chatbot_conversations),
     path('test-token', views.test_token),

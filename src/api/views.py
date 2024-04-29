@@ -15,13 +15,8 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from .serializers import ChatHistorySerializer
 from rest_framework.authtoken.models import Token
-from .models import PracticeList
-from .models import PracticeHistory
 from .models import Questionnaire
 from .utility import generate_list
-from .serializers import QuestionnaireSerializer
-from django.utils import timezone
-from datetime import timedelta
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -81,22 +76,6 @@ def get_practice_list(request):
         practice_list = generate_list()
         
         return Response(practice_list, status=status.HTTP_200_OK)
-    except Exception as e:
-        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET'])
-@authentication_classes([SessionAuthentication, TokenAuthentication])
-def gen_new_practice_list(request):
-    if not request.user.is_authenticated:
-        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-
-    try:
-        practice_history = PracticeHistory.objects.get(user=request.user)
-        generated_list = generate_list(practice_history.words)
-        practice_list = PracticeList.objects.get(user=request.user)
-        practice_list.words = generated_list
-        practice_list.save()
-        return Response(practice_list.words, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
