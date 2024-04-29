@@ -88,7 +88,8 @@ def save_chatbot_conversations(request):
     try:
         title = request.data.get('title')
         conversation = request.data.get('messages')
-        ChatHistory.objects.create(user=request.user, title=title, chat=conversation)
+        thread_id = request.data.get('thread_id')
+        ChatHistory.objects.create(user=request.user, title=title, chat=conversation, thread_id=thread_id)
         return Response("Chatbot conversation saved", status=status.HTTP_200_OK)
     except Exception as e:
         print(e)
@@ -108,6 +109,24 @@ def get_chatbot_conversations(request):
         serializer = ChatHistorySerializer(chat_history, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
+        return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication, TokenAuthentication])
+def update_chatbot_conversations(request):
+    #print(request.data)
+    if not request.user.is_authenticated:
+        print("User not authenticated")
+        return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        messages = request.data.get('messages')
+        print(messages.get('id'))
+        chat_history = ChatHistory.objects.get(id=messages.get('id'))
+        chat_history.chat = messages.get('chat')
+        chat_history.save()
+        return Response("Chatbot conversation updated", status=status.HTTP_200_OK)
+    except Exception as e:
+        print(e)
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])

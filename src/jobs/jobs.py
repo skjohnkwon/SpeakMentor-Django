@@ -18,16 +18,13 @@ def schedule_clean_audio_files():
                     os.remove(file_path)
             os.rmdir(dir_path)
 
-def schedule_clean_assistants():
-    assistants = []
-    print("[APSCHEDULER] CLEANING ASSISTANTS")
+def schedule_clean_threads():
+    print("[APSCHEDULER] CLEANING THREADS")
+    assistantId = os.getenv('OPENAI_ASSISTANT_ID_CHATBOT')
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
-    response = client.beta.assistants.list()
+    response = client.Thread.list(assistant_id=assistantId)
     while response.has_more:
-        for assistant in response.data:
-            assistants.append(assistant)
-        response = client.beta.assistants.list(after=response.data[-1].id)
-    for assistant in assistants:
-        if assistant.name != "suggested_list_generator":
-            client.beta.assistants.delete(assistant.id)
-            print(f"[APSCHEDULER] Deleted assistant {assistant.id}")
+        for thread in response.data:
+            client.Thread.delete(assistant_id=assistantId, thread_id=thread.id)
+            print(f"[APSCHEDULER] Deleted thread {thread.id}")
+        response = client.Thread.list(assistant_id=assistantId, after=response.data[-1].id)

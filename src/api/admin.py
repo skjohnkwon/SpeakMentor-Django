@@ -3,7 +3,7 @@ from .models import ChatHistory
 from .models import Questionnaire
 
 class ChatHistoryAdmin(admin.ModelAdmin):
-    list_display = ('user', 'title', 'chat', 'date')  # Fields to display in list view
+    list_display = ('user', 'title', 'chat', 'date', 'thread_id')  # Fields to display in list view
     search_fields = ['user']  # Fields that can be searched
 
 admin.site.register(ChatHistory, ChatHistoryAdmin)

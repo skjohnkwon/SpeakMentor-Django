@@ -393,7 +393,7 @@ def add_message(message_content, sender_role, client: OpenAI, thread_id):
         return "An error occurred while adding the message."
 
 def process_chatbot(request):
-
+    print(request.data)
     path_converted_wav = process_audio_files(request)
     speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'chatbot')
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
@@ -410,26 +410,26 @@ def process_chatbot(request):
 
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
 
-    if not request.session.session_key:
-        print("session key not found. creating new session...")
-        request.session['thread_id'] = init_chatbot(client)
+    thread_id = request.data.get('thread_id', None)
+    if thread_id == 'undefined' or thread_id == '' or thread_id == 'null':
+        print("thread_id not found. creating new thread...")
+        thread_id = init_chatbot(client)
+        request.session['thread_id'] = thread_id
         request.session.modified = True
         request.session.save()
-        sessionid = request.session.session_key
 
-    sessionid = request.session.session_key
-    threadId = request.session.get('thread_id')
-    print("sessionid: ", sessionid)
-    print("thread_id: ", threadId)
+    print("sessionid: ", request.session.session_key)
+    print("thread_id: ", thread_id)
 
-    chatbot_response = add_message(user_message, "user", client, request.session.get('thread_id'))
+    chatbot_response = add_message(user_message, "user", client, thread_id)
 
     print("user message: ", user_message)
     print("fluency score: ", fluency_score)
+
     return Response(data={
         "user_message": user_message,
         "chatbot_response": chatbot_response,
         "feedback": fluency_feedback,
         "result_json": result_json,
-        "thread_id": threadId
+        "thread_id": thread_id
         }, status=status.HTTP_200_OK)
