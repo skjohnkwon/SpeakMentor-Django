@@ -22,9 +22,9 @@ def schedule_clean_threads():
     print("[APSCHEDULER] CLEANING THREADS")
     assistantId = os.getenv('OPENAI_ASSISTANT_ID_CHATBOT')
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
-    response = client.Thread.list(assistant_id=assistantId)
+    response = client.beta.threads.list(assistant_id=assistantId)
     while response.has_more:
         for thread in response.data:
-            client.Thread.delete(assistant_id=assistantId, thread_id=thread.id)
+            client.beta.threads.delete(assistant_id=assistantId, id=thread.id)
             print(f"[APSCHEDULER] Deleted thread {thread.id}")
-        response = client.Thread.list(assistant_id=assistantId, after=response.data[-1].id)
+        response = client.beta.threads.list(assistant_id=assistantId)
