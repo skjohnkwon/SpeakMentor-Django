@@ -7,6 +7,7 @@ import re
 import secrets
 import subprocess
 from openai import OpenAI
+import openai
 
 from dotenv import load_dotenv
 import requests
@@ -69,37 +70,41 @@ def webscrapeYouGlish(word) -> list[str] | None:
         result = None
     return result
 
-def openai_laymans(word) -> list[str] | None:
-
-    headers = {
-        "X-RapidAPI-Key": os.getenv('RAPIDAPI_KEY'),
-        "X-RapidAPI-Host": "wordsapiv1.p.rapidapi.com"
-    }
-
-    url1 = f"https://wordsapiv1.p.rapidapi.com/words/{word}/syllables"
-    syllables = requests.get(url1, headers=headers).json().get('syllables')
-    list_syllables = syllables['list']
-
-    print(list_syllables)
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv('OPENAI_SECRET_KEY')}",
-    }
-
-    data = {
-        "model": 'gpt-4-0125-preview',
-        "messages": [{"role": "user", "content" : f"Convert {word} to simple American layman's pronunciation. Give me the array ONLY, in this regex: [^a-zA-Z,]+(,[^a-zA-Z,]+)* {list_syllables}."}],
-        "temperature": 0,
-    }
-
-    response = requests.post(os.getenv('OPENAI_ENDPOINT'), headers=headers, data=json.dumps(data))
-
-    if response.status_code == 200:      
-        print(response.json())
-        return response.json()["choices"][0]["message"]["content"]
+def webscrapeMerriam(word):
+    url = f"https://www.merriam-webster.com/dictionary/{word}"
+    page = requests.get(url)
+    soup = bs(page.content, "html.parser")
+    # find class 'a' with class = play-pron-v2 text-decoration-none prons-entry-list-item d-inline badge mw-badge-gray-300
+    ipa_pron = soup.find("a", class_="play-pron-v2 text-decoration-none prons-entry-list-item d-inline badge mw-badge-gray-300")
+    if ipa_pron:
+        text = ipa_pron.text
+        syllables = text.replace("\xa0","").split("-")
+        # remove all punctuation
+        syllables = [s.translate(str.maketrans('', '', '.,ˌˈ()')) for s in syllables]
+        return convert_to_laymans_openai(syllables, word)
     else:
-        raise Exception(f"Error {response.status_code}: {response.text}")
+        return None
+    
+def convert_to_laymans_openai(syllables, word):
+    client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
+    # Convert the list of syllables to a string
+    list_syllables = ', '.join(syllables)
+    # Create a completion
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {
+                "role": "system", 
+                "content": f"Convert the syllables {list_syllables} to simplified layman's pronunciation for the inflected form or morphological variant of the word {word}. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments. Maintain syllable count if possible."},
+        ]
+    )
+    # Extract the text from the completion object
+    words = response.choices[0].message.content
+    #print(words)
+    # Split the words by commas
+    word_list = words.split(',')
+    # Return the list of words
+    return [word.strip().lower() for word in word_list]
 
 def generate_word_feedback(request):
 
@@ -393,7 +398,7 @@ def add_message(message_content, sender_role, client: OpenAI, thread_id):
         return "An error occurred while adding the message."
 
 def process_chatbot(request):
-    print(request.data)
+    #print(request.data)
     path_converted_wav = process_audio_files(request)
     speech_recognizer = create_speechsdk_configuration(request, path_converted_wav, 'chatbot')
     speech_recognition_result = speech_recognizer.recognize_once_async().get()
@@ -414,11 +419,11 @@ def process_chatbot(request):
     if thread_id == 'undefined' or thread_id == '' or thread_id == 'null':
         print("thread_id not found. creating new thread...")
         thread_id = init_chatbot(client)
-        request.session['thread_id'] = thread_id
-        request.session.modified = True
-        request.session.save()
+        # request.session['thread_id'] = thread_id
+        # request.session.modified = True
+        # request.session.save()
 
-    print("sessionid: ", request.session.session_key)
+    #print("sessionid: ", request.session.session_key)
     print("thread_id: ", thread_id)
 
     chatbot_response = add_message(user_message, "user", client, thread_id)

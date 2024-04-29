@@ -8,7 +8,7 @@ from rest_framework.authentication import SessionAuthentication, TokenAuthentica
 from rest_framework.permissions import IsAuthenticated
 from .models import Word
 from .serializers import WordSerializer
-from .utility import process_word, process_sentence, process_assessment, process_chatbot, webscrapeHowManySyllables, webscrapeYouGlish, openai_laymans
+from .utility import process_word, process_sentence, process_assessment, process_chatbot, webscrapeHowManySyllables, webscrapeYouGlish, webscrapeMerriam
 
 load_dotenv()
 
@@ -61,8 +61,8 @@ def search(request):
             new_word = Word(word=word, laymans=scrapedYouGlish)
 
         else:
-            print("openai_laymans")
-            generated = openai_laymans(word)
+            print("web scraped from Merriam")
+            generated = webscrapeMerriam(word)
             new_word = Word(word=word, laymans=generated)
 
     new_word.save()

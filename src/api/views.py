@@ -71,10 +71,8 @@ def get_practice_list(request):
     print(request.user)
     if not request.user.is_authenticated:
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
-
     try:
         practice_list = generate_list()
-        
         return Response(practice_list, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
