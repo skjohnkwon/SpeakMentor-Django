@@ -1,6 +1,6 @@
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
-from .jobs import schedule_clean_audio_files, schedule_clean_threads
+from .jobs import schedule_clean_audio_files
 
 def start():
     scheduler = BackgroundScheduler()
