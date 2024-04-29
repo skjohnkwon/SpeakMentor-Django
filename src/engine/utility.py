@@ -321,19 +321,12 @@ def process_assessment(request):
 
 def init_chatbot(client: OpenAI):
 
-    print("initializing chatbot")
+    print("initializing chatbot thread")
 
-    # Create a new assistant and thread as before
-    chatbot = client.beta.assistants.create(
-        name="pronunciation_assistant_roleplay",
-        instructions=
-            "All responses should be no more than 50 words. You are a roleplay chatbot that helps users improve their pronunciation and fluency. Only give one response at a time.",
-        model="gpt-3.5-turbo-16k-0613",
-    )
     thread = client.beta.threads.create()
 
     thread_id = thread.id
-    assistant_id = chatbot.id
+    #assistant_id = os.getenv('OPENAI_ASSISTANT_ID_CHATBOT')
     
     # Automatically generate the first chatbot message
     initial_message = "Hello! How can I help you?"
@@ -344,7 +337,7 @@ def init_chatbot(client: OpenAI):
             content=initial_message
         )
     
-    return thread_id, assistant_id
+    return thread_id
 
 def generate_message_feedback(content):
 
@@ -369,7 +362,7 @@ def generate_message_feedback(content):
     else:
         raise Exception(f"Error {response.status_code}: {response.text}")
 
-def add_message(message_content, sender_role, client: OpenAI, thread_id, assistant_id):
+def add_message(message_content, sender_role, client: OpenAI, thread_id):
 
     print("adding message: ", message_content)
 
@@ -383,7 +376,7 @@ def add_message(message_content, sender_role, client: OpenAI, thread_id, assista
 
         run = client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
-            assistant_id=assistant_id,
+            assistant_id=os.getenv('OPENAI_ASSISTANT_ID_CHATBOT'),
             instructions="Continue to help the user. All responses should be no more than 50 words."
             )
         
@@ -419,19 +412,17 @@ def process_chatbot(request):
 
     if not request.session.session_key:
         print("session key not found. creating new session...")
-        request.session['thread_id'], request.session['assistant_id'] = init_chatbot(client)
+        request.session['thread_id'] = init_chatbot(client)
         request.session.modified = True
         request.session.save()
         sessionid = request.session.session_key
 
     sessionid = request.session.session_key
     threadId = request.session.get('thread_id')
-    chatbotId = request.session.get('assistant_id')
     print("sessionid: ", sessionid)
     print("thread_id: ", threadId)
-    print("assistant_id: ", chatbotId)
 
-    chatbot_response = add_message(user_message, "user", client, request.session.get('thread_id'), request.session.get('assistant_id'))
+    chatbot_response = add_message(user_message, "user", client, request.session.get('thread_id'))
 
     print("user message: ", user_message)
     print("fluency score: ", fluency_score)
@@ -439,5 +430,6 @@ def process_chatbot(request):
         "user_message": user_message,
         "chatbot_response": chatbot_response,
         "feedback": fluency_feedback,
-        "result_json": result_json
+        "result_json": result_json,
+        "thread_id": threadId
         }, status=status.HTTP_200_OK)

@@ -82,7 +82,6 @@ def get_practice_list(request):
 @api_view(['POST'])
 @authentication_classes([SessionAuthentication, TokenAuthentication])
 def save_chatbot_conversations(request):
-    print(request.user)
     if not request.user.is_authenticated:
         print("User not authenticated")
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)

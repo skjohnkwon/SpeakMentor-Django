@@ -8,6 +8,7 @@ class ChatHistory(models.Model):
     title = models.CharField(max_length=100, blank=True)
     chat = models.JSONField()
     date = models.DateTimeField(auto_now_add=True)
+    thread_id = models.CharField(max_length=100, blank=True)
 
 class Questionnaire(models.Model):
     user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
