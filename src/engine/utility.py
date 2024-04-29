@@ -392,7 +392,7 @@ def add_message(message_content, sender_role, client: OpenAI, thread_id, assista
         run = client.beta.threads.runs.create_and_poll(
             thread_id=thread_id,
             assistant_id=assistant_id,
-            instructions="Continue to help the user."
+            instructions="Continue to help the user. All responses should be no more than 50 words."
             )
         
         if (run.status == "completed"):

@@ -78,27 +78,9 @@ def get_practice_list(request):
         return Response("User not authenticated", status=status.HTTP_401_UNAUTHORIZED)
 
     try:
-        practice_list, practice_list_created = PracticeList.objects.get_or_create(user=request.user)
-        practice_history, practice_history_created = PracticeHistory.objects.get_or_create(user=request.user)
-
-        if practice_history_created:
-            practice_history.words = []
-            practice_history.save()
+        practice_list = generate_list()
         
-        if practice_list_created:
-            generated_list = generate_list(practice_history.words)
-            practice_list.words = generated_list
-            practice_list.save()
-            return Response(generated_list, status=status.HTTP_200_OK)
-
-        elif timezone.now() - practice_list.modified_at > timedelta(days=1):
-            print("OLD. Generating new list")
-            generated_list = generate_list(practice_history.words)
-            practice_list.words = generated_list
-            practice_list.save()
-            print(generated_list)
-        
-        return Response(practice_list.words, status=status.HTTP_200_OK)
+        return Response(practice_list, status=status.HTTP_200_OK)
     except Exception as e:
         return Response(str(e), status=status.HTTP_400_BAD_REQUEST)
 
