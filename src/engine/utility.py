@@ -78,7 +78,7 @@ def generate_laymans_openai(word):
         messages=[
             {
                 "role": "system", 
-                "content": f"Convert the word {word} to simplified layman's pronunciation. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments."},
+                "content": f"Convert the word \"{word}\" to it's simplified layman's pronunciation. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments."},
         ]
     )
     # Extract the text from the completion object
