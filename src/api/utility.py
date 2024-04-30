@@ -26,8 +26,8 @@ def generate_list():
 
     # # Return the list of words
     # return [word.strip().lower() for word in word_list]
-    list = []
     rw = RandomWord()
-    for i in range(5):
-        list.append(rw.word(syllables=(3, 3)))
+    list = rw.random_words(5, word_min_length=10, word_max_length=15, include_parts_of_speech=["noun", "adjective"])
+    #for each in list replace all hyphens with nothing
+    list = [each.replace("-","") for each in list]
     return list
