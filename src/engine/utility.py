@@ -87,7 +87,7 @@ def generate_laymans_openai(word):
     # Split the words by commas
     word_list = words.split(',')
     # Return the list of words
-    return [word.strip().lower() for word in word_list]
+    return [word.strip().lower().replace("tion", "shun") for word in word_list]
 
 def webscrapeMerriam(word):
     url = f"https://www.merriam-webster.com/dictionary/{word}"
