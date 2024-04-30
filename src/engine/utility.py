@@ -70,6 +70,25 @@ def webscrapeYouGlish(word) -> list[str] | None:
         result = None
     return result
 
+def generate_laymans_openai(word):
+    client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
+    # Create a completion
+    response = client.chat.completions.create(
+        model="gpt-4-turbo",
+        messages=[
+            {
+                "role": "system", 
+                "content": f"Convert the word {word} to simplified layman's pronunciation. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments."},
+        ]
+    )
+    # Extract the text from the completion object
+    words = response.choices[0].message.content
+    #print(words)
+    # Split the words by commas
+    word_list = words.split(',')
+    # Return the list of words
+    return [word.strip().lower() for word in word_list]
+
 def webscrapeMerriam(word):
     url = f"https://www.merriam-webster.com/dictionary/{word}"
     page = requests.get(url)
