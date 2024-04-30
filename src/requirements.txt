@@ -23,7 +23,9 @@ dj-database-url==2.1.0
 Django==4.1.11
 django-apscheduler==0.6.2
 django-cors-headers==4.3.0
+django-rest-authtoken==2.1.4
 djangorestframework==3.14.0
+djangorestframework-simplejwt==5.3.1
 docopt==0.6.2
 executing==2.0.1
 fastjsonschema==2.19.1
@@ -66,6 +68,7 @@ pydantic==2.6.4
 pydantic_core==2.16.3
 Pygments==2.17.2
 PyHyphen==4.0.3
+PyJWT==2.8.0
 pyproject_hooks==1.0.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
@@ -98,4 +101,5 @@ uvicorn==0.29.0
 wcwidth==0.2.13
 webencodings==0.5.1
 whitenoise==6.6.0
+wonderwords==2.2.0
 yarg==0.1.9
