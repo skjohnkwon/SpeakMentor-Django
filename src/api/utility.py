@@ -28,6 +28,7 @@ def generate_list():
     # return [word.strip().lower() for word in word_list]
     rw = RandomWord()
     list = rw.random_words(5, word_min_length=10, word_max_length=15, include_parts_of_speech=["noun", "adjective"])
-    #for each in list replace all hyphens with nothing
     list = [each.replace("-","") for each in list]
+    # regex search for "sation" and replace with "zation"
+    list = [each.replace("sation", "zation") for each in list]
     return list
