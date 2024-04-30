@@ -21,7 +21,7 @@ def generate_list():
 
     print(words)
     # Split the words by commas
-    word_list = words.split(',')
+    word_list = words.replace(".", "").split(',')
 
     # Return the list of words
     return [word.strip().lower() for word in word_list]
