@@ -8,7 +8,7 @@ from rest_framework.authentication import SessionAuthentication, TokenAuthentica
 from rest_framework.permissions import IsAuthenticated
 from .models import Word
 from .serializers import WordSerializer
-from .utility import process_word, process_sentence, process_assessment, process_chatbot, webscrapeHowManySyllables, webscrapeYouGlish, webscrapeMerriam, generate_laymans_openai
+from .utility import process_word, process_sentence, process_assessment, process_chatbot, webscrapeHowManySyllables, webscrapeYouGlish, generate_laymans_openai
 
 load_dotenv()
 

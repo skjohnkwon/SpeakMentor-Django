@@ -70,7 +70,25 @@ def webscrapeYouGlish(word) -> list[str] | None:
         result = None
     return result
 
+def search_merriam_webster(word):
+    api_key = os.getenv('MERRIAM_WEBSTER_KEY')
+    url = f"https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={api_key}"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        ipa = data[0]['hwi']['prs'][0]['mw']
+        parts = ipa.replace('ˈ', '').split('-')
+        cleaned_parts = [re.sub(r'[^\w\s]', '', part) for part in parts]
+        return ', '.join(cleaned_parts)
+    except (requests.exceptions.HTTPError, IndexError, KeyError) as e:
+        print(f"Error accessing data for '{word}': {e}")  # Handle errors and missing data
+        return None
+
 def generate_laymans_openai(word):
+
+    syllables = search_merriam_webster(word)
+
     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
     # Create a completion
     response = client.chat.completions.create(
@@ -78,7 +96,7 @@ def generate_laymans_openai(word):
         messages=[
             {
                 "role": "system", 
-                "content": f"Convert the word \"{word}\" to it's simplified layman's pronunciation. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments."},
+                "content": f"Convert these syllables for the word \"{word}\" into their layman's pronunciation: \"{syllables}\". DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments."},
         ]
     )
     # Extract the text from the completion object
@@ -89,41 +107,26 @@ def generate_laymans_openai(word):
     # Return the list of words
     return [word.strip().lower().replace("tion", "shun") for word in word_list]
 
-def webscrapeMerriam(word):
-    url = f"https://www.merriam-webster.com/dictionary/{word}"
-    page = requests.get(url)
-    soup = bs(page.content, "html.parser")
-    # find class 'a' with class = play-pron-v2 text-decoration-none prons-entry-list-item d-inline badge mw-badge-gray-300
-    ipa_pron = soup.find("a", class_="play-pron-v2 text-decoration-none prons-entry-list-item d-inline badge mw-badge-gray-300")
-    if ipa_pron:
-        text = ipa_pron.text
-        syllables = text.replace("\xa0","").split("-")
-        # remove all punctuation
-        syllables = [s.translate(str.maketrans('', '', '.,ˌˈ()')) for s in syllables]
-        return convert_to_laymans_openai(syllables, word)
-    else:
-        return None
-    
-def convert_to_laymans_openai(syllables, word):
-    client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
-    # Convert the list of syllables to a string
-    list_syllables = ', '.join(syllables)
-    # Create a completion
-    response = client.chat.completions.create(
-        model="gpt-4-turbo",
-        messages=[
-            {
-                "role": "system", 
-                "content": f"Convert the syllables {list_syllables} to simplified layman's pronunciation for the inflected form or morphological variant of the word {word}. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments. Make sure to generate syllables for the inflected word, not the orginal."},
-        ]
-    )
-    # Extract the text from the completion object
-    words = response.choices[0].message.content
-    #print(words)
-    # Split the words by commas
-    word_list = words.split(',')
-    # Return the list of words
-    return [word.strip().lower() for word in word_list]
+# def convert_to_laymans_openai(syllables, word):
+#     client = OpenAI(api_key=os.getenv('OPENAI_SECRET_KEY'))
+#     # Convert the list of syllables to a string
+#     list_syllables = ', '.join(syllables)
+#     # Create a completion
+#     response = client.chat.completions.create(
+#         model="gpt-4-turbo",
+#         messages=[
+#             {
+#                 "role": "system", 
+#                 "content": f"Convert the syllables {list_syllables} to simplified layman's pronunciation for the inflected form or morphological variant of the word {word}. DO not include any punctuation, explanation, discussion, comments, or use any IPA symbols. Provide the syllables separated by commas without any punctuation, explanation, discussion, or comments. Make sure to generate syllables for the inflected word, not the orginal."},
+#         ]
+#     )
+#     # Extract the text from the completion object
+#     words = response.choices[0].message.content
+#     #print(words)
+#     # Split the words by commas
+#     word_list = words.split(',')
+#     # Return the list of words
+#     return [word.strip().lower() for word in word_list]
 
 def generate_word_feedback(request):
 
