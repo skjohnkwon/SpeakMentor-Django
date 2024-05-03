@@ -378,7 +378,7 @@ def generate_message_feedback(content):
     prompt = f"Give a concise articulation tip on how to improve the fluency of this sentence \"{content}\". Make it optimized for speaking not writing. One sentence only."
     message = [{"role": "user", "content": prompt}]
     data = {
-        "model": 'gpt-4-0125-preview',
+        "model": 'gpt-4-turbo',
         "messages": message,
         "temperature": 1,
     }
